@@ -2,9 +2,17 @@
 
 A visual-only prototype of Avara, the owner-facing lead intelligence and opportunity recovery workspace. No backend, no auth — realistic mock data only. Dark graphite default with a light porcelain option, restrained coral + purple accents, soft glass panels, and expressive instrument-style charts.
 
-## Scope
+## Scope and priority
 
-Five clickable pages, shared shell, mock data, theme toggle. Built focus-first: Today → Lead Inbox → Lead Detail → Import → Avara Work Mode.
+Build in two phases. Phase 1 ships a finished Today page; other pages exist only as navigable stubs. Phase 2 fills them in.
+
+**Phase 1 (this pass): Today / Avara Briefing — finished.**
+- Full shell (nav rail, top bar, theme toggle, studio switcher) so Today sits in real context.
+- Every Today section polished: decision summary, revenue risk instrument, recovery priorities, prepared actions, priority leads, Avara insight, compact instruments row.
+- Realistic mock data, working hover/active states, approve/skip interactions on prepared actions (local state only), responsive down to ~1024px.
+- Other routes (`/inbox`, `/leads/$leadId`, `/import`, `/work`) exist as minimal placeholder pages with the shared shell and a "Coming next" panel — just enough so nav links work and the Today page never dead-ends.
+
+**Phase 2 (later passes):** Lead Inbox → Lead Detail → Import → Avara Work Mode, in that order.
 
 ## Routes
 
