@@ -1,111 +1,119 @@
-# Avara by Avitus Leads — High-fidelity UI Prototype
+# Avara — Phase 2: Lead Inbox + Avara Work Mode
 
-A visual-only prototype of Avara, the owner-facing lead intelligence and opportunity recovery workspace. No backend, no auth — realistic mock data only. Dark graphite default with a light porcelain option, restrained coral + purple accents, soft glass panels, and expressive instrument-style charts.
+Building on the finished Today page, this pass adds two new full pages: the visual Lead Inbox and the conversational Avara Work Mode. Both use the existing shell, tokens, and mock data. Visual prototype only — no backend.
 
-## Scope and priority
+## Lead Inbox (`/inbox`)
 
-Build in two phases. Phase 1 ships a finished Today page; other pages exist only as navigable stubs. Phase 2 fills them in.
+Not a flat table. A visual triage surface that feels like sorting a stack of cards.
 
-**Phase 1 (this pass): Today / Avara Briefing — finished.**
-- Full shell (nav rail, top bar, theme toggle, studio switcher) so Today sits in real context.
-- Every Today section polished: decision summary, revenue risk instrument, recovery priorities, prepared actions, priority leads, Avara insight, compact instruments row.
-- Realistic mock data, working hover/active states, approve/skip interactions on prepared actions (local state only), responsive down to ~1024px.
-- Other routes (`/inbox`, `/leads/$leadId`, `/import`, `/work`) exist as minimal placeholder pages with the shared shell and a "Coming next" panel — just enough so nav links work and the Today page never dead-ends.
-
-**Phase 2 (later passes):** Lead Inbox → Lead Detail → Import → Avara Work Mode, in that order.
-
-## Routes
-
-- `/` Today / Avara Briefing (primary focus)
-- `/inbox` Lead Inbox (visual triage)
-- `/leads/$leadId` Lead Detail (single-lead workspace)
-- `/import` CSV cleanup workflow
-- `/work` Avara Work Mode (text-led AI surface)
-
-## Shared shell
-
-- Slim left rail: Avara wordmark, nav (Today, Inbox, Leads, Import, Work), profile chip at bottom.
-- Top bar per page: page title, contextual filters, search, theme toggle (dark/light), studio switcher.
-- Global tokens in `src/styles.css` (oklch): graphite/obsidian surfaces, porcelain light surfaces, coral accent (human urgency), purple accent (intelligence), glass panel utility, soft elevation shadows, gradient utilities.
-- Reusable primitives: `GlassPanel`, `StatPill`, `RiskBar`, `PriorityDot`, `SourceBadge`, `MissingFieldChip`, `InstrumentChart`, `SectionHeader`, `EmptyState`.
-
-## Page 1 — Today / Avara Briefing
-
-Layout (12-col, asymmetric — not a wall of equal cards):
+### Layout
 
 ```text
-+--------------------------------------------------+
-| Today's review — greeting + date + studio        |
-| Decision summary (1 wide hero panel, text-led)   |
-+----------------------+---------------------------+
-| Revenue risk         | Recovery priorities (list)|
-| (instrument chart +  | 3-5 leads going cold,     |
-| at-risk € total)     | with reason + CTA         |
-+----------------------+---------------------------+
-| Prepared actions (carousel of approval cards)    |
-+----------------------+---------------------------+
-| Priority leads       | Avara insight (text panel)|
-| (compact rich rows)  | narrative observations    |
-+----------------------+---------------------------+
-| Compact instruments row: response time, source mix, qualification rate |
-+--------------------------------------------------+
++----------- sticky filter bar -------------+ select rail +
+| search · source · class · risk · missing  |             |
++-------------------------------------------+             |
+| Needs review today  (3)                   |  Selected   |
+|  [rich lead row]                          |  preview    |
+|  [rich lead row]                          |  panel:     |
+|  [rich lead row]                          |  summary,   |
+| Cooling  (4)                              |  inquiry    |
+|  [rich lead row] ...                      |  excerpt,   |
+| New this week  (3)                        |  missing,   |
+|  [rich lead row] ...                      |  jump to    |
+| Recovered  (2)                            |  detail     |
+|  [rich lead row] ...                      |             |
++-------------------------------------------+-------------+
 ```
 
-Key behaviors:
-- Decision summary is a short prose block ("3 leads need review before they go cold. €84k in revenue at risk this week.") with inline action chips.
-- Revenue risk chart: area/line instrument showing projected vs at-risk pipeline, coral fill for risk band.
-- Prepared actions: each card shows lead, drafted message preview, why, Approve / Edit / Skip.
-- Priority leads: dense rows with source, score, missing-info chips, "Review" button → Lead Detail.
-- Avara insight: text-only panel, restrained purple accent, bullet observations.
+### Rich lead row (not a table cell)
 
-## Page 2 — Lead Inbox
+Each row is a horizontal mini-card with: avatar/initials block tinted by classification, name + project + location, source badge, score bar with numeric value, missing-info chips, recovery-risk pill, value pill, "Review" button. Hovered = subtle lift + hairline glow. Selected = coral hairline + raised surface.
 
-Visual triage, not a flat table.
+### Filter bar
 
-- Sticky filter bar: source, classification (Interior / Architecture / Real Estate), recovery risk (Hot / Cooling / Cold), missing info toggle, search.
-- Left: stacked group headers (Needs review today, Cooling, New this week, Recovered). Each group is a list of rich lead rows, not table rows: avatar/initials block, name + project type, source badge, score bar, missing-info chips, next action label, open button.
-- Right rail: selected-lead mini preview (summary + jump to detail).
+Sticky just under the top bar. Pill toggles for source, classification (Interior / Architecture / Real Estate), recovery risk (Hot / Cooling / Cold / Recovered), and a "Missing info only" switch. Search filters by name/project. All wired to local React state filtering the existing `leads` array.
 
-## Page 3 — Lead Detail
+### Right rail (selected lead)
 
-Single-lead workspace, two-column with right rail.
+When a row is clicked it stays selected and the right rail shows: name, project, source, score ring, risk pill, inquiry excerpt (2 lines), missing-info chips with "Ask" buttons (visual only), next action, and a "Open lead detail" link that routes to `/leads/$leadId`.
 
-- Header: name, project, source, score ring, recovery-risk pill, status, primary action ("Send prepared follow-up").
-- Left column: Raw inquiry (verbatim message), Extracted fields grid, Score breakdown (criteria with weight bars), Missing information (chips with "Ask" buttons), Opportunity recovery reason ("Review before this lead goes cold — last reply 6 days ago").
-- Right rail: Prepared follow-up (editable draft, tone selector, Approve/Send), Next best question, Notes & reminders timeline.
+### Empty state
 
-## Page 4 — Import
+If filters exclude everything, show a calm empty panel with the active filters as removable chips.
 
-Stepper: Upload → Preview → Map → Review → Done.
+### Interactions (local state only)
 
-- Upload: dropzone with sample-file link.
-- Preview table: first 20 rows, detected delimiter and encoding.
-- Mapping: source columns ↔ Avara fields with confidence pills, unmapped highlighted.
-- Review: rows needing attention grouped by reason (duplicate, missing email/phone, low-quality, conflicting), inline fix.
-- Done summary: imported / skipped / flagged counts + jump to Inbox.
+- Click row → selects it, fills right rail
+- Approve action chip on right rail → row gets a green hairline + "Prepared" badge
+- Toggle "Missing info only" → list animates filter
 
-## Page 5 — Avara Work Mode
+## Avara Work Mode (`/work`)
 
-Text-led AI work surface. No mascot, no orb.
+A text-led command surface where the owner asks Avara to do something. Avara replies in chat, and when it performs an action it pulls up an **action preview** — a small inline panel that shows what's happening in the rest of the app (e.g. opening a lead, drafting a reply, filtering inbox).
 
-- Top: large command input ("Ask Avara to prepare something…") with example chips.
-- Center: task timeline — each task is a collapsible row with status (Thinking, Drafting, Ready), step list, evidence references.
-- Right drawer: prepared output preview (draft email, lead summary, etc.) with Approve / Edit / Discard.
-- Avara presence = wordmark + status copy + progress bar only.
+### Layout
 
-## Mock data
+```text
++---------------------------------------------------+
+| Header: Avara · status copy · thin progress line  |
++--------------------------+------------------------+
+| Conversation transcript  | Context rail           |
+| - prompt chips on empty  | - active studio        |
+| - user bubble            | - leads in scope       |
+| - Avara response (md)    | - recent prepared work |
+| - inline ActionPreview   | - tips                 |
+| - typing/working state   |                        |
++--------------------------+------------------------+
+| Composer: large input · example chips · send      |
++---------------------------------------------------+
+```
 
-`src/lib/mock/` — leads (~30 across interior design, architecture, real estate), sources (Instagram, WhatsApp, Referral, Website, Email, Spreadsheet), prepared actions, insights, import sample rows, work-mode tasks. Realistic names, project types ("Kitchen remodel — Notting Hill", "3-bed new build — Porto", "Off-plan 2-bed — Dubai Marina"), euro/GBP/AED values.
+### Conversation behavior (mocked)
 
-## Technical notes
+State machine drives a scripted reply per known intent. Recognized intents (substring match on prompt):
 
-- TanStack Start route files: `src/routes/index.tsx`, `inbox.tsx`, `leads.$leadId.tsx`, `import.tsx`, `work.tsx`, plus a layout `_app.tsx` with the shell (or wrap in `__root.tsx` — keep `<Outlet />`).
-- Theme toggle via `class="dark"` on `<html>`, persisted to `localStorage`. Default dark.
-- Charts via Recharts using shadcn `ChartContainer`; styled as instruments (thin strokes, gradient fills, minimal axes).
-- All colors via semantic tokens defined in `src/styles.css` (oklch). Add: `--accent-coral`, `--accent-purple`, `--surface-glass`, `--surface-raised`, `--gradient-risk`, `--gradient-intel`, `--shadow-panel`.
-- Components in `src/components/avara/` (shell, panels, charts, lead row, prepared action card, etc.).
-- No Supabase, no server functions, no auth.
+- "follow up" / "draft" → ActionPreview: drafted-message card with lead avatar + draft text
+- "cold" / "at risk" → ActionPreview: filtered Inbox snippet (3 cooling/cold rows)
+- "show" / "open" + lead name → ActionPreview: Lead Detail mini-card (header + score + missing)
+- "summary" / "today" → ActionPreview: Today briefing snippet (revenue at risk + 3 priorities)
+- fallback → text-only Avara reply
+
+### ActionPreview component
+
+Inline rounded panel inside the chat. Header has a small "Avara is opening …" label, a target chip (e.g. "Lead inbox › Cooling"), and an action row ("Open in app" → routes to that page, "Dismiss"). Body renders a compact, real-looking slice of the destination view using shared primitives — not a screenshot, the actual components rendered small.
+
+### Transitions
+
+- New message: framer-motion-style enter via Tailwind + `transition-all` (opacity + translate-y), staggered 60ms.
+- ActionPreview: scales in from 0.96 with hairline shimmer, then content fades in.
+- Working state: thin progress line under header animates indefinitely while "thinking" (800–1400ms scripted delay before reply).
+- Composer focus ring uses the coral accent.
+
+### Prompt chips (empty state)
+
+- "Draft a follow-up to Camille Roux"
+- "Show me leads going cold"
+- "Open Henrik Lindqvist"
+- "Summarize today"
+
+### Context rail
+
+Static-feeling helper: studio chip, leads-in-scope count, "Last prepared" list (links to existing leads), and a small "What Avara can do" list. Restrained purple accent for the Avara presence.
+
+## Shared work in this pass
+
+- Add `src/components/avara/LeadRow.tsx` and `src/components/avara/ScoreRing.tsx` (used by Inbox + ActionPreview).
+- Add `src/components/avara/work/ActionPreview.tsx` with variants: `draft`, `inbox`, `leadCard`, `briefing`.
+- Add `src/components/avara/work/MessageBubble.tsx` and `Composer.tsx`.
+- Extend mock data with a small `workmodeIntents.ts` mapping prompt → scripted reply + preview config.
+- Fix any bugs surfaced while wiring (e.g. confirm `Outlet` integrity, ensure no missing imports, head metadata per route).
+
+## Routes touched
+
+- `src/routes/inbox.tsx` — replace stub with full Inbox page
+- `src/routes/work.tsx` — replace stub with full Work Mode
+- No changes to `/`, `/leads/$leadId`, `/import` beyond minor shared-component reuse
 
 ## Out of scope
 
-Real backend, persistence, auth, email sending, file parsing, mobile-first redesign (desktop-first, responsive down to tablet).
+Real AI calls, persistence, backend, auth. All replies are scripted from a mock intent map. Import page stays as a stub for now.
