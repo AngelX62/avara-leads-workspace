@@ -1,10 +1,10 @@
 # Avara — Phase 2: Lead Inbox + Avara Work Mode
 
-Building on the finished Today page. Visual prototype only — no backend, all mock data. Two distinct, opinionated surfaces.
+Visual prototype only. Mock data. Two surfaces, each opinionated.
 
 ## Lead Inbox (`/inbox`) — Map + Queue
 
-A spatial inbox. Leads exist somewhere in the world, so the inbox treats geography as a first-class axis. Left = a stylized map of the studio's active markets. Right = a tight, prioritized queue. Selecting a pin filters the queue; selecting a queue row pulses the pin. No card stack, no kanban.
+A spatial inbox. Left = stylized SVG map of active markets. Right = tight prioritized queue. Pin ↔ row are bidirectional.
 
 ### Layout (desktop)
 
@@ -12,146 +12,143 @@ A spatial inbox. Leads exist somewhere in the world, so the inbox treats geograp
 +--------------------------------------------------+
 | Filter strip: search · class · risk · missing    |
 +-----------------------+--------------------------+
-|                       | Queue                    |
-|   Map panel           | -----------------------  |
-|   - dark base         | LISBON · 4 leads         |
-|   - hairline borders  |  > Sofia A.     hot      |
-|   - lead pins sized   |    Ana & Tom\u00e1s  hot      |
-|     by value, tinted  |    Helena V.    hot      |
-|     by risk           |    Eduardo P.   cold     |
-|   - hovered pin       | LONDON · 4 leads         |
-|     shows mini tag    |  > Camille R.   cooling  |
-|   - city labels       |    Yuki T.      cooling  |
-|                       |    Devon C.     cold     |
-|                       | DUBAI · 2 leads          |
-|                       | PORTO/ALGARVE · 2 leads  |
-|                       | COTSWOLDS · 1 lead       |
-|                       | MILAN · 1 lead           |
+| Map panel             | Queue (grouped by city)  |
+|  - dark base, hairline|  LISBON · 4 · €92k        |
+|  - pins sized by value|   Sofia A.    hot   €38k  |
+|  - tinted by risk     |   Ana & T.    hot   €24k  |
+|  - clusters per city  |  LONDON · 4 · €71k        |
+|  - hover tag, click   |   Camille R.  cool  €18k  |
+|    selects + scrolls  |  DUBAI · 2                |
 +-----------------------+--------------------------+
-| Footer: Recovery summary (counts + at-risk \u20ac)    |
+| Footer: 12 in queue · 5 cooling · €184k at risk  |
 +--------------------------------------------------+
 ```
 
 ### Map panel
-
-- Custom dark stylized map (SVG, not Mapbox). Continents drawn as soft hairline shapes over the graphite surface — Europe centered, Middle East visible to the right. No labels except the cities Avara cares about.
-- Each lead = a pin at its city. Pin radius scales with deal value (log scale). Pin fill uses risk color: coral (cold), amber (cooling), mint (hot), purple (recovered). Pin has a faint pulse if "needs review today".
-- Cities with multiple leads cluster into a single ring with a count.
-- Hover a pin → tooltip with name + project + value. Click → selects that lead (highlights row in queue, opens right-rail detail in queue panel).
-- Lasso-free; selection is pin-driven or row-driven.
-- A small "Region" toggle in the corner: All · Europe · UK · Middle East — animates pan/zoom of the SVG viewBox.
+- Custom dark SVG (no Mapbox). Europe + ME, hairline continent outlines, only Avara cities labeled.
+- Pin radius = log(deal value). Fill = risk color (coral cold, amber cooling, mint hot, purple recovered). Faint pulse if "needs review today".
+- Multi-lead cities cluster into one ring with count.
+- Region toggle (All · EU · UK · ME) animates viewBox pan/zoom.
 
 ### Queue panel
+- Grouped by city; header shows count + pipeline + at-risk slice.
+- Rows are typographic, not cards: name, project + source muted, risk dot, value tabular right-aligned, inline missing-info chips. Hover = hairline left bar in risk color.
+- Selected row expands inline: inquiry excerpt, missing chips with "Ask" buttons, link to `/leads/$leadId`.
 
-- Grouped by city (matches map). City header shows count + total pipeline value + at-risk slice.
-- Each row is intentionally typographic, not a card: lead name (medium weight), project + source (muted small), risk dot, value (right-aligned, tabular numerals), missing-info chips inline. Hover = hairline left bar in risk color. Selected = coral hairline + soft surface.
-- Selected row expands inline (accordion) into a compact detail strip: inquiry excerpt (2 lines), missing chips with "Ask" buttons, "Open lead detail" link → `/leads/$leadId`.
-- Filter strip is sticky and drives both map pins and queue rows.
+### Interactions (local state)
+- Filters drive both map + queue.
+- Pin ↔ row bidirectional selection.
+- "Missing info only" dims pins without missing info.
 
-### Footer strip
+## Avara Work Mode (`/work`) — Single chat + Agent overlay
 
-A single horizontal band: "12 leads in queue · 5 going cold · \u20ac184k at risk this week" with restrained coral on the at-risk number.
-
-### Interactions (local state only)
-
-- Filter strip mutates a single derived list; both map + queue read from it.
-- Row click ↔ pin highlight (bidirectional).
-- Region toggle animates SVG viewBox via CSS transition.
-- "Missing info only" toggle dims pins without missing info.
-
-## Avara Work Mode (`/work`) — Takeover Canvas
-
-OpenAI-agent-mode feel, but inside Avara. The shell stays. The right ~70% of the page becomes a dark canvas — Avara's sandbox — where it visibly renders what it's doing at full size. The left ~30% is a slim conversation column. No inline preview cards in chat; the canvas IS the preview.
+One centered chat panel. Full-width, focused. A mode toggle in the composer switches between **Ask** (text-only replies) and **Agent** (Avara can take actions on your lead data). When in Agent mode and a prompt triggers an action, a **small-medium overlay** rises over the chat showing what Avara is doing. The chat itself stays clean — no split, no inline preview cards.
 
 ### Layout
 
 ```text
 +--------------------------------------------------+
-| Header: Avara \u00b7 status copy \u00b7 progress hairline   |
-+----------------+---------------------------------+
-| Chat column    | Sandbox canvas                  |
-| (slim, ~320px) | (deep graphite, hairline frame) |
-|                |                                 |
-| - prompt chips | [Avara renders the current      |
-|   on empty     |  action at full size here:      |
-| - user msg     |  a draft composer, a filtered   |
-| - Avara msg    |  inbox slice, a lead detail,    |
-|   (text only)  |  a briefing summary, etc.]      |
-| - step ticks   |                                 |
-|   ("Reading    | Top of canvas: breadcrumb       |
-|    Camille's   |  "Avara > Drafting follow-up    |
-|    inquiry\u2026")  |   for Camille Roux"             |
-|                | Bottom: ghost cursor + step     |
-| Composer       |  indicator + "Approve / Edit /  |
-| pinned bottom  |  Discard" action bar            |
-+----------------+---------------------------------+
+|             Avara · Work mode                    |
+|         "Ask, or let Avara take action."         |
++--------------------------------------------------+
+|                                                  |
+|     [centered chat transcript, max ~760px]       |
+|                                                  |
+|     User: Draft a follow-up to Camille           |
+|     Avara: On it — drafting now.                 |
+|       └─ "Action running" inline status chip     |
+|          (click to reopen overlay)               |
+|                                                  |
++--------------------------------------------------+
+|  [composer]  [Ask | Agent toggle]  [Send]        |
++--------------------------------------------------+
 ```
 
-### The sandbox canvas
+### The chat panel
+- Centered column on a calm graphite surface. Hairline frame, generous vertical rhythm.
+- Empty state: a soft Avara presence (no orb/mascot — just a hairline pulse and one line "Avara is ready"), and 4 prompt suggestion tiles below the composer ("Draft a follow-up to Camille Roux", "Find leads going cold in London", "Open Henrik Lindqvist", "Summarize today").
+- Messages: text-only bubbles. User right-aligned, Avara left-aligned with a small coral presence dot. Markdown rendered for Avara's replies.
+- When Avara starts an action (Agent mode only), its message includes a small status row underneath: spinning hairline + "Drafting follow-up for Camille Roux · view". Clicking "view" re-opens the overlay. After completion, the row collapses to "Draft ready · Approved" with a check.
 
-- Visually distinct from the rest of the app: deeper background (`--surface-0` shifted darker), hairline inner frame, faint grid texture, subtle vignette. Reads as "Avara's workspace, not your live app."
-- Renders one focused stage at a time using shared primitives. Stages:
-  1. **Drafting** — large composer mock with recipient header, channel pill, draft text appearing token-by-token (scripted typewriter), tone selector, send button (disabled, visual).
-  2. **Triaging inbox** — a small version of the Inbox map+queue showing only the leads Avara is considering, with pins lighting up one by one as it "reads" them.
-  3. **Opening a lead** — Lead Detail mini view (header, score ring, missing chips, inquiry) materializing in place.
-  4. **Briefing** — the Today decision summary + revenue-at-risk instrument rendered standalone.
-- A breadcrumb at the top of the canvas reads "Avara › {action} › {target}". Updates as steps progress.
-- A ghost cursor element traces small movements between regions of the active stage during steps (CSS translate transitions), reinforcing the "Avara is working" feel without being literal screen-recording.
-- Bottom action bar (pinned inside canvas): "Approve", "Edit", "Discard" — visual only, but Approve triggers a check-mark sweep animation and the step list marks Done.
+### The composer
+- Large rounded input with coral focus ring.
+- To the right of the input: a segmented **Ask / Agent** toggle. Agent state is visually distinct (subtle purple tint on the ring + a tiny "agent" pill above the input that reads "Agent mode — Avara can take actions").
+- Send button (coral fill in Agent, neutral in Ask).
+- Below the composer when empty: prompt suggestion tiles.
 
-### Transitions
+### The agent overlay (the key piece)
 
-- Stage swap: outgoing stage scales to 0.98 + fades, incoming scales from 1.02 + fades, hairline frame pulses. ~280ms.
-- Token-by-token text via scripted `setTimeout` chunks.
-- Step ticks in the chat column animate in (opacity + translate-y, 60ms stagger).
-- Progress hairline under header animates while Avara is "thinking".
-- Ghost cursor uses ease-in-out 350ms transitions between target rects.
+When a prompt in Agent mode is recognized as an action intent, a **small-medium centered overlay** animates in over the chat. Not a full-screen takeover, not an inline card. Roughly 720×520 max, rounded, hairline-framed, deeper-than-background fill, soft outer shadow, faint grid texture. Backdrop dims and blurs the chat behind.
 
-### Chat column
+Structure of the overlay:
 
-- Compact bubbles, text only. User bubble right-aligned, Avara left-aligned with a tiny coral dot for presence.
-- Between Avara's reply chunks: an inline **step list** (not a preview): "1. Reading Camille's last reply · 2. Pulling tone from past messages · 3. Drafting follow-up". Each item gets a check as that step "completes" on the canvas.
-- Prompt chips on empty state: "Draft a follow-up to Camille Roux", "Find leads going cold in London", "Open Henrik Lindqvist", "Summarize today".
-- Composer is pinned at the bottom of the column with the coral focus ring.
+```text
++----------------------------------------------+
+|  Avara is working                       [×]  |
+|  Drafting follow-up · Camille Roux           |
+|  ─── thin progress hairline ───              |
++----------------------------------------------+
+|  Steps (left, 1/3)   |  Stage (right, 2/3)   |
+|  • Reading last reply|  [live render of      |
+|  • Pulling tone      |   the action: draft   |
+|  • Drafting message  |   composer, filtered  |
+|  ✓ Done              |   inbox slice, lead   |
+|                      |   detail, briefing]   |
++----------------------------------------------+
+|  [ Discard ]   [ Edit ]   [ Approve ]        |
++----------------------------------------------+
+```
 
-### Scripted intents (mock state machine)
+- **Animation in**: backdrop fades, overlay scales from 0.96 + fades up. ~240ms ease-out.
+- **Animation out**: scales to 0.98 + fades. On approve, a check-mark sweep plays before close.
+- Closing the overlay does NOT cancel the action — it minimizes to the inline status chip in the chat. Reopen via the chip.
+- Esc closes; click outside closes.
+- The stage area renders one of four scripted views, reusing primitives:
+  1. **Drafting** — recipient header, channel pill, draft text typewriter-revealed, tone selector, disabled send.
+  2. **Triaging** — compact map+queue showing only the considered leads; pins light up sequentially.
+  3. **Opening a lead** — mini Lead Detail (header, score ring, missing chips, inquiry excerpt) materializing.
+  4. **Briefing** — Today decision summary + revenue-at-risk instrument.
+- Step list ticks as the canvas progresses (scripted setTimeout sequence, 800–1400ms per step).
+- Action bar: Discard / Edit / Approve are visual only. Approve sweeps a check, marks the chat message "Approved", closes the overlay after ~500ms.
 
-Each recognized intent runs a sequence: chat reply chunks + step list + canvas stage transitions, on scripted timers. Recognized substrings:
+### Ask vs Agent behavior
 
-- "draft" / "follow up" → stage = Drafting, target = first matched lead (or Camille by default)
-- "cold" / "at risk" / "going cold" → stage = Triaging inbox, filtered to cooling/cold
-- "open" / "show" + lead name → stage = Opening a lead
-- "summary" / "today" / "brief" → stage = Briefing
-- fallback → chat-only reply, canvas shows idle "Avara is ready" state with a soft animated orb-free presence (just a hairline pulse).
+- **Ask mode**: Avara replies in text only. No overlay, ever. Suggestions still appear but they're informational ("Here's how I'd approach Camille…").
+- **Agent mode**: action intents open the overlay; non-action prompts still get a text-only reply with no overlay.
 
-### Idle canvas
+### Scripted intent matcher (mock state machine)
 
-When no task is running, the canvas shows: "Avara is ready" centered, a thin animated progress underline, and four large prompt suggestion tiles (same as chat chips but bigger). Picking one fires the intent.
+Substring match → `{ stage, target, steps[], chatReply }`:
+- "draft" / "follow up" → Drafting
+- "cold" / "going cold" / "at risk" → Triaging
+- "open" / "show" + lead name → Opening a lead
+- "summary" / "today" / "brief" → Briefing
+- fallback (Agent mode) → text reply, no overlay
 
-## Shared work in this pass
+## Shared components
 
-- `src/components/avara/inbox/MapPanel.tsx` — stylized SVG world map with Europe + ME, pin rendering, hover/select behavior.
-- `src/components/avara/inbox/Queue.tsx` — grouped, typographic queue with inline expand.
-- `src/components/avara/inbox/FilterStrip.tsx` — filter pills, single source of truth for derived list.
-- `src/components/avara/ScoreRing.tsx` — reused in Work Mode "Opening a lead" stage and Lead Detail.
-- `src/components/avara/work/Canvas.tsx` — frame, breadcrumb, ghost cursor, action bar, stage swap transitions.
-- `src/components/avara/work/stages/Drafting.tsx`, `TriagingInbox.tsx`, `OpeningLead.tsx`, `Briefing.tsx`, `Idle.tsx`.
-- `src/components/avara/work/ChatColumn.tsx` + `Composer.tsx` + `StepList.tsx`.
-- `src/lib/mock/workmodeIntents.ts` — intent matcher returning `{ chatChunks[], steps[], stage, target }`.
-- Extend `leads` with `coords: { lat, lng }` for the map (mock values, mapped to SVG coordinates).
+- `src/components/avara/inbox/MapPanel.tsx` — stylized SVG map, pins, clusters, region toggle.
+- `src/components/avara/inbox/Queue.tsx` — grouped typographic queue with inline expand.
+- `src/components/avara/inbox/FilterStrip.tsx` — single source of truth for derived list.
+- `src/components/avara/work/ChatPanel.tsx` — centered transcript, empty state, suggestion tiles.
+- `src/components/avara/work/Composer.tsx` — input + Ask/Agent toggle + send.
+- `src/components/avara/work/AgentOverlay.tsx` — modal frame, backdrop, animations, action bar, step list.
+- `src/components/avara/work/stages/{Drafting,Triaging,OpeningLead,Briefing}.tsx`.
+- `src/components/avara/ScoreRing.tsx` — reused in Opening Lead stage.
+- `src/lib/mock/workmodeIntents.ts` — intent matcher.
+- Extend `leads` mock with `coords` for map pin placement.
 
-## Bugs to fix while here
+## Bugs/polish while here
 
 - Verify `__root.tsx` still renders `<Outlet />`.
-- Confirm all new route files have unique `head()` metadata (title, description).
-- Audit `src/styles.css` for any missing tokens used by the new components (add `--mint`, `--amber` if needed for risk pin colors).
+- Unique `head()` per route.
+- Add missing tokens to `src/styles.css` if needed (`--mint`, `--amber` for risk colors).
 
 ## Routes touched
 
-- `src/routes/inbox.tsx` — replace stub with Map + Queue
-- `src/routes/work.tsx` — replace stub with Takeover Canvas
-- No changes to `/`, `/leads/$leadId`, `/import`
+- `src/routes/inbox.tsx` — Map + Queue
+- `src/routes/work.tsx` — Chat + Agent overlay
 
 ## Out of scope
 
-Real AI, real maps (Mapbox/Leaflet), persistence, backend, auth. Import page stays as a stub.
+Real AI, real maps, persistence, backend, auth. Import page stays a stub.
