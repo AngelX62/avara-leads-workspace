@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Send, Sparkles, MessageSquare, ArrowUp, Loader2, Check, Eye } from "lucide-react";
+import { Sparkles, MessageSquare, ArrowUp, Loader2, Check, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Mode = "ask" | "agent";
