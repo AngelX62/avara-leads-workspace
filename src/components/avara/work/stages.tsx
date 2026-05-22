@@ -3,7 +3,7 @@ import type { Stage } from "@/lib/mock/workmodeIntents";
 import { getLead, preparedActions, formatMoney, leads } from "@/lib/mock/data";
 import { cityFor } from "@/lib/mock/geo";
 import { MissingChip, RiskPill, SourceBadge } from "@/components/avara/Bits";
-import { Send, MapPin, FileText, AlertTriangle, Sparkles } from "lucide-react";
+import { MapPin, AlertTriangle, Sparkles } from "lucide-react";
 
 function useTypewriter(text: string, active: boolean, speed = 14) {
   const [out, setOut] = React.useState("");
