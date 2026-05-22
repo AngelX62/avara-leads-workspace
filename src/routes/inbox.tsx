@@ -1,39 +1,63 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import * as React from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/avara/Shell";
-import { Panel, PanelHeader } from "@/components/avara/Panel";
-import { ArrowLeft } from "lucide-react";
+import { leads as ALL_LEADS, formatMoney } from "@/lib/mock/data";
+import { regionFor } from "@/lib/mock/geo";
+import { FilterStrip, defaultFilters, type InboxFilters } from "@/components/avara/inbox/FilterStrip";
+import { MapPanel } from "@/components/avara/inbox/MapPanel";
+import { Queue } from "@/components/avara/inbox/Queue";
 
-function ComingSoon({ name, blurb }: { name: string; blurb: string }) {
+function InboxPage() {
+  const [filters, setFilters] = React.useState<InboxFilters>(defaultFilters);
+  const [selectedId, setSelectedId] = React.useState<string | null>("l-001");
+
+  const filtered = React.useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    return ALL_LEADS.filter((l) => {
+      if (filters.classification !== "All" && l.classification !== filters.classification) return false;
+      if (filters.risk !== "All" && l.risk !== filters.risk) return false;
+      if (filters.missingOnly && l.missing.length === 0) return false;
+      if (filters.region !== "All" && regionFor(l.location) !== filters.region) return false;
+      if (q && !(`${l.name} ${l.project} ${l.location}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [filters]);
+
+  const counts = React.useMemo(() => {
+    const cooling = filtered.filter((l) => l.risk === "cooling" || l.risk === "cold").length;
+    // crude EUR-equiv at risk
+    const eur = (v: number, c: string) => (c === "GBP" ? v * 1.17 : c === "AED" ? v * 0.25 : v);
+    const atRisk = filtered
+      .filter((l) => l.risk === "cooling" || l.risk === "cold")
+      .reduce((s, l) => s + eur(l.value, l.currency), 0);
+    return { total: filtered.length, cooling, atRiskValue: formatMoney(Math.round(atRisk), "EUR") };
+  }, [filtered]);
+
   return (
-    <div className="px-6 lg:px-8 py-10 max-w-[1100px] mx-auto">
-      <Panel tone="glass" className="grain">
-        <div className="p-10 relative">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Coming next
-          </div>
-          <h2 className="text-[26px] font-semibold tracking-tight mt-1">{name}</h2>
-          <p className="mt-2 text-[14px] text-muted-foreground max-w-prose">{blurb}</p>
-          <Link
-            to="/"
-            className="mt-6 inline-flex items-center gap-2 rounded-md border hairline px-3 py-2 text-[12.5px] hover:bg-[var(--surface-2)]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Today's review
-          </Link>
-          <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-purple/20 blur-3xl" />
+    <Shell title="Lead inbox" subtitle="Spatial triage">
+      <FilterStrip filters={filters} onChange={setFilters} counts={counts} />
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-4 p-4 lg:p-6 h-[calc(100vh-7.25rem)]">
+        <div className="min-h-[420px] h-full">
+          <MapPanel
+            leads={filtered}
+            allLeads={ALL_LEADS}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            region={filters.region}
+          />
         </div>
-      </Panel>
-    </div>
+        <div className="min-h-[420px] h-full rounded-2xl border hairline bg-[var(--surface-1)]/80 overflow-hidden">
+          <Queue leads={filtered} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
+        </div>
+      </div>
+    </Shell>
   );
 }
 
 export const Route = createFileRoute("/inbox")({
-  head: () => ({ meta: [{ title: "Lead inbox · Avara" }] }),
-  component: () => (
-    <Shell title="Lead inbox" subtitle="Triage">
-      <ComingSoon
-        name="Lead inbox"
-        blurb="A visual triage surface for every inquiry — grouped by recovery risk, filterable by source and classification, with missing-information indicators and next actions surfaced inline."
-      />
-    </Shell>
-  ),
+  head: () => ({ meta: [
+    { title: "Lead inbox · Avara" },
+    { name: "description", content: "Spatial triage of every inquiry across your active markets." },
+  ] }),
+  component: InboxPage,
 });
