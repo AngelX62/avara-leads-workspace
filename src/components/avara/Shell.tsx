@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/", label: "Today", icon: LayoutGrid },
-  { to: "/inbox", label: "Inbox", icon: Inbox },
+  { to: "/inbox", label: "Inquiries", icon: Inbox },
   { to: "/import", label: "Import", icon: FileSpreadsheet },
   { to: "/work", label: "Work mode", icon: Sparkles },
 ];
