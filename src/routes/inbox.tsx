@@ -1,17 +1,18 @@
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/avara/Shell";
-import { leads as ALL_LEADS } from "@/lib/mock/data";
-import { formatMoney } from "@/lib/mock/data";
+import { leads as ALL_LEADS, formatMoney } from "@/lib/mock/data";
 import { SummaryStrip } from "@/components/avara/inbox/SummaryStrip";
 import { FilterPills, type PillKey } from "@/components/avara/inbox/FilterPills";
 import { RequestGroup } from "@/components/avara/inbox/RequestGroup";
 import { PreviewPanel } from "@/components/avara/inbox/PreviewPanel";
-import { ViewToggle, type InboxView } from "@/components/avara/inbox/ViewToggle";
-import { MapPanel } from "@/components/avara/inbox/MapPanel";
+import { ViewSwitcher, type InquiriesView } from "@/components/avara/inbox/ViewSwitcher";
+import { Tracker } from "@/components/avara/inbox/Tracker";
+import { AreasView } from "@/components/avara/inbox/AreasView";
 import { GROUP_META, GROUP_ORDER, groupForLead, type GroupKey } from "@/lib/mock/inboxGroups";
 
-const eur = (v: number, c: "EUR" | "GBP" | "AED") => (c === "GBP" ? v * 1.17 : c === "AED" ? v * 0.25 : v);
+const eur = (v: number, c: "EUR" | "GBP" | "AED") =>
+  c === "GBP" ? v * 1.17 : c === "AED" ? v * 0.25 : v;
 
 function pillMatches(key: PillKey, group: GroupKey): boolean {
   if (key === "all") return true;
@@ -22,10 +23,16 @@ function pillMatches(key: PillKey, group: GroupKey): boolean {
   return true;
 }
 
-function InboxPage() {
+const VIEW_HINT: Record<InquiriesView, string> = {
+  review: "Decide which inquiries deserve your time today.",
+  tracker: "Manage every record. Customize columns and save studio views.",
+  areas: "Where opportunity and risk live this week.",
+};
+
+function InquiriesPage() {
   const [pill, setPill] = React.useState<PillKey>("all");
   const [query, setQuery] = React.useState("");
-  const [view, setView] = React.useState<InboxView>("list");
+  const [view, setView] = React.useState<InquiriesView>("review");
   const [selectedId, setSelectedId] = React.useState<string | null>("l-001");
 
   const filtered = React.useMemo(() => {
@@ -79,18 +86,28 @@ function InboxPage() {
     [selectedId],
   );
 
+  const showFilters = view === "review" || view === "tracker";
+
   return (
     <Shell title="Project requests" subtitle="Inquiries">
       <SummaryStrip {...counts.summary} />
-      <div className="flex items-center justify-between gap-3 px-6 pt-3">
-        <div className="text-[12px] text-muted-foreground hidden md:block">
-          Review and decide which projects deserve your time today.
-        </div>
-        <ViewToggle value={view} onChange={setView} />
-      </div>
-      <FilterPills active={pill} onChange={setPill} query={query} onQuery={setQuery} counts={counts.pillCounts} />
 
-      {view === "list" ? (
+      <div className="flex items-center justify-between gap-3 px-6 pt-3 pb-1">
+        <div className="text-[12px] text-muted-foreground hidden md:block">{VIEW_HINT[view]}</div>
+        <ViewSwitcher value={view} onChange={setView} />
+      </div>
+
+      {showFilters && (
+        <FilterPills
+          active={pill}
+          onChange={setPill}
+          query={query}
+          onQuery={setQuery}
+          counts={counts.pillCounts}
+        />
+      )}
+
+      {view === "review" && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-6 px-6 py-6">
           <div className="min-w-0">
             {filtered.length === 0 ? (
@@ -105,39 +122,45 @@ function InboxPage() {
                   hint={GROUP_META[key].hint}
                   leads={grouped.get(key) ?? []}
                   selectedId={selectedId}
-                  onSelect={(id) => setSelectedId(id)}
+                  onSelect={setSelectedId}
                 />
               ))
             )}
           </div>
 
-          {/* Desktop sticky preview */}
           <aside className="hidden lg:block">
             <div className="sticky top-[7.5rem] h-[calc(100vh-8.5rem)] rounded-xl border hairline bg-[var(--surface-1)] overflow-hidden">
               <PreviewPanel lead={selectedLead} />
             </div>
           </aside>
-
-          {/* Mobile drawer */}
-          {selectedLead && (
-            <div className="lg:hidden fixed inset-0 z-40">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedId(null)} />
-              <div className="absolute inset-x-0 bottom-0 max-h-[88vh] rounded-t-2xl border-t hairline bg-[var(--background)] overflow-hidden animate-fade-in">
-                <PreviewPanel lead={selectedLead} onClose={() => setSelectedId(null)} />
-              </div>
-            </div>
-          )}
         </div>
-      ) : (
-        <div className="px-6 py-6 h-[calc(100vh-12rem)]">
-          <div className="h-full rounded-xl border hairline bg-[var(--surface-1)] overflow-hidden">
-            <MapPanel
-              leads={filtered}
-              allLeads={ALL_LEADS}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              region="All"
-            />
+      )}
+
+      {view === "tracker" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-6 px-6 py-6">
+          <div className="min-w-0">
+            <Tracker leads={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+          </div>
+          <aside className="hidden lg:block">
+            <div className="sticky top-[7.5rem] h-[calc(100vh-8.5rem)] rounded-xl border hairline bg-[var(--surface-1)] overflow-hidden">
+              <PreviewPanel lead={selectedLead} />
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {view === "areas" && (
+        <div className="px-6 py-6">
+          <AreasView leads={ALL_LEADS} onSelectLead={setSelectedId} />
+        </div>
+      )}
+
+      {/* Mobile drawer (Review + Tracker) */}
+      {(view === "review" || view === "tracker") && selectedLead && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedId(null)} />
+          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] rounded-t-2xl border-t hairline bg-[var(--background)] overflow-hidden animate-fade-in">
+            <PreviewPanel lead={selectedLead} onClose={() => setSelectedId(null)} />
           </div>
         </div>
       )}
@@ -148,9 +171,9 @@ function InboxPage() {
 export const Route = createFileRoute("/inbox")({
   head: () => ({
     meta: [
-      { title: "Project requests · Avara" },
-      { name: "description", content: "Review and decide which inquiries deserve your studio's time today." },
+      { title: "Inquiries · Avara" },
+      { name: "description", content: "Review, track, and act on project inquiries for your studio." },
     ],
   }),
-  component: InboxPage,
+  component: InquiriesPage,
 });
